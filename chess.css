@@ -1,0 +1,8 @@
+canvas {
+    border: 1px solid #000;
+    display: inline-block;
+    margin: 0;
+}
+.row {
+    font-size: 0;
+}
