@@ -1,10 +1,15 @@
-const myBoard = ChessBoard()
 
 
+// const myBoard = ChessBoard()
 
-function ChessBoard() {
+
+// Function for generating the ChessBoard object
+// ChessBoard object accepts moves as an ordered pair of indices myBoard.move(25, 45)
+function ChessBoard(gameObj) {
+    
     // Load Piece images
     const images = {}
+    {
     images.wp = new Image()
     images.wp.src = "pieces/pawn.png"
     images.bp = new Image()
@@ -29,8 +34,11 @@ function ChessBoard() {
     images.wq.src = "pieces/queen.png"
     images.bq = new Image()
     images.bq.src = "pieces/queen1.png"
-    // Initialize square information matrix
-    const squares = [
+    setTimeout(() => gameObj.start(), 50)
+    }
+    // Initialize square information object
+    const squares = {}
+    const newSetup = [
         [["wr"], ["wn"], ["wb"], ["wq"], ["wk"], ["wb"], ["wn"], ["wr"]],
         [["wp"], ["wp"], ["wp"], ["wp"], ["wp"], ["wp"], ["wp"], ["wp"]],
         [[""], [""], [""], [""], [""], [""], [""], [""]],
@@ -39,60 +47,95 @@ function ChessBoard() {
         [[""], [""], [""], [""], [""], [""], [""], [""]],
         [["bp"], ["bp"], ["bp"], ["bp"], ["bp"], ["bp"], ["bp"], ["bp"]],
         [["br"], ["bn"], ["bb"], ["bq"], ["bk"], ["bb"], ["bn"], ["br"]]
-      ]
-    // Grab canvases and contexts
+    ]
+
+    
+    // Build squares object
     for (let i = 1; i < 9; i++) {
         for (let j = 1; j < 9; j++) {
-          const canvasId = `${i}${j}`
-          const canvasVariable = document.getElementById(`${canvasId}`)
-          squares[i-1][j-1].push(canvasVariable,canvasVariable.getContext('2d'))
+          const ij = `${i}${j}`
+          const canvasVariable = document.getElementById(`${ij}`)
+          squares[ij] = Object()
+          squares[ij].sprite = newSetup[i-1][j-1][0]
+          squares[ij].cnv = canvasVariable
+        //   console.log(canvasVariable)
+          squares[ij].ctx = canvasVariable.getContext('2d')
+          squares[ij].cnv.addEventListener("click", () => gameObj.click(ij))
+          squares[ij].ctx.fillStyle = ((i+j)%2===0) ? "#8D6E41" : "#99CC66"
         }
+    }
+    
+    // Clear a square
+    const clearSquare = (s) => {
+        squares[s].ctx.fillRect(0, 0, squares[s].cnv.width, squares[s].cnv.height)
+    }
+    
+    const boardObj = {
+        'start': () => {
+            // console.log(squares)
+            for (let s in squares) {
+                clearSquare(s)
+                if (squares[s].sprite !== "") {
+                    squares[s].ctx.drawImage(images[squares[s].sprite], 0, 0, squares[s].cnv.width, squares[s].cnv.height)
+                }
+            
+            }
+        },  
+        'move': (s1, s2) => {
+            squares[s2].sprite = squares[s1].sprite
+            clearSquare(s1)
+            clearSquare(s2)
+            squares[s2].ctx.drawImage(images[squares[s2].sprite], 0, 0, squares[s2].cnv.width, squares[s2].cnv.height)
+            },
+        'game': gameObj,
+        'squares': () => console.log(squares),
+        'print': () => console.log(this)
       }
     
-    //fnc to split digits
-    const split = (num) => [Math.floor(num/10), num%10]
+    return boardObj
+  }
 
-    // Clear a square
-    const clearSquare = (index) => {
-        let [x, y] = split(index)
-        squares[y][x][2].clearRect(0, 0, canvas.width, canvas.height)
-    }
-
-    // // Takes in a move and updates the board
-    // function move(s1, s2) {
-    //     let [x1,y1] = split(s1)
-    //     let [x2,y2] = split(s2)
-    //     squares[y2][x2][0] = squares[y1][x1][0]
-    //     clearSquare(y1,x1)
-    //     squares[y2][x2][2].drawImage(images[squares[y2][x2][0]], 0, 0, canvas.width, canvas.height)
-
-    // }
+  // Function for generating game object
+  // Game object accepts clicks as a square index myGame.click(25)
+  function Game() {
   
-    // Public methods and properties
-    return {
-      'start': () => {
-        for (let row of squares) {
-            for (let square of row) {
-                if (square[0] !== "") {
-                    square[2].drawImage(images[square[0]], 0, 0, square[1].width, square[1].height)
-                }
+      let pieceInHand = false
+      let originSquare
+  
+      const gameObj = {
+        "start": () => board.start(),
+        "click": (square) => {
+            if (pieceInHand) {
+                console.log(originSquare, square)
+                board.move(originSquare, square)
+            } else {
+                originSquare = square
             }
-        }
-      },  
-      'move': (s1, s2) => {
-        let [x1,y1] = split(s1)
-        let [x2,y2] = split(s2)
-        squares[y2][x2][0] = squares[y1][x1][0]
-        clearSquare(y1,x1)
-        squares[y2][x2][2].drawImage(images[squares[y2][x2][0]], 0, 0, images[squares[y2][x2][1]].width, images[squares[y2][x2][1]].height)
-
-        }
-    }
+            pieceInHand = !pieceInHand
+        },
+        "print": () => console.log(this),
+        "printBoard": () => console.log(board),
+        "squares": () => board.squares()
+      }
+      const board = ChessBoard(gameObj)
+    //   gameObj.board = board
+  
+      return gameObj
+  
+  
+  
+  
+  
+  
+      
   }
 
 
 
 
 
+  // Object for controlling the game state
+  const myGame = Game()
+  myGame.start()
 
-  
+

@@ -5,4 +5,10 @@ canvas {
 }
 .row {
     font-size: 0;
+    display: block;
+    text-align: center;
+}
+
+.board {
+    margin-top: 50px;
 }
