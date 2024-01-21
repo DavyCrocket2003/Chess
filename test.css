@@ -1,0 +1,46 @@
+.row {
+    display: flex;
+}
+
+
+.square {
+    margin: 0px;
+    padding: 0px;
+    width: 50px; /* Set the width of the square */
+    height: 50px; /* Set the height of the square */
+    background-color: lightgray; /* Set the background color */
+    border: 1px solid black; /* Add a border for visual separation (optional) */
+    display: inline-block; /* Make squares display in a row */
+}
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+  }
+  
+  .grid-container {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    grid-gap: 10px; /* Adjust as needed */
+    padding: 20px;
+  }
+  
+  .grid-item {
+    background-color: #eee; /* Set your desired background color */
+    padding: 20px;
+    text-align: center;
+    border: 1px solid #ccc; /* Set your desired border style */
+    position: relative;
+  }
+  
+  .superimposed-content {
+    position: absolute;
+    top: 50%; /* Adjust as needed */
+    left: 50%; /* Adjust as needed */
+    transform: translate(-50%, -50%);
+    z-index: 2; /* Place this on top of the grid items */
+    background-color: #fff; /* Set your desired background color */
+    padding: 10px;
+    border: 1px solid #000; /* Set your desired border style */
+  }
+  
