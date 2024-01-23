@@ -100,11 +100,12 @@ function ChessBoard(gameObj) {
 function Game() {
     
     let pieceInHand = false
-    let originSquare
+    let originSquare = '52'
+    
 
 
 
-    // Function that gives you a pieces object
+    // Function that gives you a pieces object that handles the pieces and board configuration
     function Pieces(gameObj) {
 
         let squares = {}
@@ -383,7 +384,7 @@ function Game() {
 
         function transformPieces(s1,s2,squareObj=squares) { //Function to take care of piece changes
             let [y1,x1,y2,x2] = [Number(s1[0]),Number(s1[1]),Number(s2[0]),Number(s2[1])]
-            let result = ''
+            let promoteSymbol = ''
             if (squareObj[s2].piece==='U') {    //Unmoved King to King
                 squareObj[s2].piece = 'K'
             }
@@ -424,17 +425,17 @@ function Game() {
                     choice = prompt("Choose a piece— Q, R, B, or N: ", 'Q')
                 }
                 squareObj[s2].piece = choice
-                result += `=${choice}`
+                promoteSymbol += `=${choice}`
             }
             if (squareObj[s2].piece==='p' && y2===1) {
                 let choice = ''
                 while (!'QRBN'.test(choice)) {
                     choice = prompt("Choose a piece— Q, R, B, or N: ", 'Q')
-                    result += `=${choice}`
+                    promoteSymbol += `=${choice}`
                 }
                 squareObj[s2].piece = choice.toLowerCase()
             }
-            return result
+            return promoteSymbol
         }
 
 
@@ -443,11 +444,18 @@ function Game() {
         // Build piecesObj
         let piecesObj = {
             "turn": 'white',
-            "game": gameObj,
-            "gameState": 'normal',
-            "history": [compressState('T')],
-            "squares": () => {squares},
-            "getMoves": (yx) => {squares[yx].legalMoves},
+            "game": gameObj,                //Parent Game
+            "gameState": 'normal',          //Currently implemented: normal, check, checkmate, stalemate
+            "history": [compressState('T')],//String history of each board position
+            "squares": () => {squares},     //Get the squares object that represents everything
+            "getSquare": (yx) => { //For a given square, get the moves available to the piece located there
+                return {
+                    "isAttacked": squares[yx].isAttacked,
+                    "color": color(squares[yx].piece),
+                    "piece": squares[yx].piece,
+                    "moves": squares[yx].legalMoves
+                }
+            },                                              
             "load": (gameStateString) => {
                 let pieceArray = []
                 for (let i=0; i<gameStateString.length; i++) {
@@ -493,24 +501,39 @@ function Game() {
                 piecesObj.turn = (piecesObj.turn === 'white') ? 'black' : 'white'
                 return entry
 
-                }
-                
             }
-
+            
         }
     }
-
-
+    // Build the game obj
     const gameObj = {
-        "start": () => board.start(),
-        "click": (square) => {
-            if (pieceInHand) {
-                console.log(originSquare, square)
-                board.move(originSquare, square)
+        "start": () => board.start(),   //deprecated
+        "click": (yx) => {
+            squareInfo = self.pieces.getSquare(yx)
+            if (!pieceInHand) {
+                if (squareInfo.piece==='_' || squareInfo.color !== pieces.turn) {
+                    pass // board.write(`Choose a ${pieces.turn} piece.`)
+                } else if (squareInfo.legalMoves.length===0) {
+                    board.write("That piece cannot be moved.")
                 } else {
-                    originSquare = square
+                    originSquare = [yx, squareInfo]
+                    pieceInHand = true
                 }
-                pieceInHand = !pieceInHand
+
+
+            } else {
+            if (originSquare[1].legalMoves.includes(yx)) {
+                gameObj.pieces.setMove(originSquare[0],yx)
+                pieceInHand = false
+            } else if (originSquare[0]===yx) {
+                pieceInHand = false
+            } else {
+                board.write("That piece cannot move there.")
+            }
+
+
+
+            }
         },
         "print": () => console.log(this),
         "printBoard": () => console.log(board),
@@ -520,11 +543,6 @@ function Game() {
     }
     const board = ChessBoard(gameObj)
 
-
-
-
-
-    
 
     return gameObj
     
