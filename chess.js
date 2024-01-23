@@ -105,7 +105,7 @@ function Game() {
 
 
     // Function that gives you a pieces object
-    function Pieces() {
+    function Pieces(gameObj) {
 
         let squares = {}
         for (let i=1; i<9; i++) {
@@ -115,10 +115,11 @@ function Game() {
                     "piece": "_",
                     "candidates": [],
                     "legalMoves": [],
-                    "inCheck": {'white': false, 'black': false}}
+                    "inCheck": {'white': false, 'black': false}
                 }
             }
         }
+        
         const color = (piece) => {  // Returns color of piece
             if (piece==='_' || piece===undefined) {
                 return false
@@ -382,30 +383,58 @@ function Game() {
 
         function transformPieces(s1,s2,squareObj=squares) { //Function to take care of piece changes
             let [y1,x1,y2,x2] = [Number(s1[0]),Number(s1[1]),Number(s2[0]),Number(s2[1])]
-            if (squareObj[s2].piece==='U') {
+            let result = ''
+            if (squareObj[s2].piece==='U') {    //Unmoved King to King
                 squareObj[s2].piece = 'K'
             }
-            if (squareObj[s2].piece==='u') {
+            if (squareObj[s2].piece==='u') {    //Unmoved king to king
                 squareObj[s2].piece = 'k'
             }
-            if (squareObj[s2].piece==='S') {
+            if (squareObj[s2].piece==='S') {    //Unmoved Rook to Rook
                 squareObj[s2].piece = 'R'
             }
-            if (squareObj[s2].piece==='s') {
+            if (squareObj[s2].piece==='s') {    //Unmoved rook to rook
                 squareObj[s2].piece = 'r'
             }
-            if ('LM'.test(squareObj[s2].piece)) {
+            if ('LM'.test(squareObj[s2].piece)) {//En Pawn to Pawn
                 squareObj[s2].piece = 'P'
             }
-            if ('lm'.test(squareObj[s2].piece)) {
+            if ('lm'.test(squareObj[s2].piece)) {//en pawn to pawn
                 squareObj[s2].piece = 'p'
             }
-            if (squareObj[s2].piece==='P' && y2-y1===2) {
-                if (squareObj[`4${x-1}`].piece===p) {
-                    squareObj[`4${x-1}`].piece = 
+            if (squareObj[s2].piece==='P' && y2-y1===2) {//Create En Pawn
+                if (squareObj[`4${x-1}`].piece==='p') {
+                    squareObj[`4${x-1}`].piece = 'l'
                 }
-
+                if (squareObj[`4${x+1}`].piece==='p') {
+                    squareObj[`4${x+1}`].piece = 'm'
+                } 
             }
+            if (squareObj[s2].piece==='p' && y1-y2===2) {//Create en pawn
+                if (squareObj[`5${x-1}`].piece==='P') {
+                    squareObj[`5${x-1}`].piece = 'M'
+                }
+                if (squareObj[`5${x+1}`].piece==='P') {
+                    squareObj[`5${x+1}`].piece = 'L'
+                } 
+            }
+            if (squareObj[s2].piece==='P' && y2===8) {
+                let choice = ''
+                while (!'QRBN'.test(choice)) {
+                    choice = prompt("Choose a piece— Q, R, B, or N: ", 'Q')
+                }
+                squareObj[s2].piece = choice
+                result += `=${choice}`
+            }
+            if (squareObj[s2].piece==='p' && y2===1) {
+                let choice = ''
+                while (!'QRBN'.test(choice)) {
+                    choice = prompt("Choose a piece— Q, R, B, or N: ", 'Q')
+                    result += `=${choice}`
+                }
+                squareObj[s2].piece = choice.toLowerCase()
+            }
+            return result
         }
 
 
@@ -414,6 +443,7 @@ function Game() {
         // Build piecesObj
         let piecesObj = {
             "turn": 'white',
+            "game": gameObj,
             "gameState": 'normal',
             "history": [compressState('T')],
             "squares": () => {squares},
@@ -433,10 +463,11 @@ function Game() {
                 }
             },
             "setMove": (s1,s2) => {
-                let pieceCaptured = (squares[s2].piece!=='_')
+                let pieceCaptured = (squares[s2].piece!=='_') 
                 squares[s2].piece = squares[s1].piece
                 squares[s1].piece = '_'
-                transformPieces(s1,s2,squares)
+                let entry = ['A','B','C','D','E','F','G','H'][Number(s1[0])] + {true:'x',false:''}[pieceCaptured] + s1[1] + ['A','B','C','D','E','F','G','H'][Number(s2[0])] + s2[1]
+                entry += transformPieces(s1,s2)
                 getCandidates()
                 getLegals()
                 let c = {'white': 0, 'black': 1}[color(squares[s2].piece)]
@@ -452,14 +483,17 @@ function Game() {
                 }
                 if (moveTotal===0) {
                     if (inCheck) {
-                        gameState = 'checkmate'
+                        piecesObj.gameState = 'checkmate'
                     } else {
-                        gameState = 'stalemate'
+                        piecesObj.gameState = 'stalemate'
                     }
                 }
+                entry += {'inCheck':'+','checkmate':'#','stalemate':'='}
+                piecesObj.history.push(compressState(piecesObj.turn))
                 piecesObj.turn = (piecesObj.turn === 'white') ? 'black' : 'white'
-                
-            
+                return entry
+
+                }
                 
             }
 
@@ -468,19 +502,21 @@ function Game() {
 
 
     const gameObj = {
-    "start": () => board.start(),
-    "click": (square) => {
-        if (pieceInHand) {
-            console.log(originSquare, square)
-            board.move(originSquare, square)
-            } else {
-                originSquare = square
-            }
-            pieceInHand = !pieceInHand
+        "start": () => board.start(),
+        "click": (square) => {
+            if (pieceInHand) {
+                console.log(originSquare, square)
+                board.move(originSquare, square)
+                } else {
+                    originSquare = square
+                }
+                pieceInHand = !pieceInHand
         },
         "print": () => console.log(this),
         "printBoard": () => console.log(board),
-        "squares": () => board.squares()
+        "squares": () => board.squares(),
+        "pieces": Pieces(),
+        "board": board,
     }
     const board = ChessBoard(gameObj)
 
