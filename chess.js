@@ -108,34 +108,46 @@ function Game() {
     function Pieces() {
 
         let squares = {}
-        squares.turn = "white"
         for (let i=1; i<9; i++) {
             for (let j=1; j<9; j++) {
                 let ij = `${i}${j}`
                 squares[ij] = {
                     "piece": "_",
                     "candidates": [],
-                    "legal": []
+                    "legalMoves": [],
+                    "inCheck": {'white': false, 'black': false}}
                 }
             }
         }
-
-        function getCandidates() {      // Return an array of canditate moves based on board state
-            // const split = (s) => [Math.floor(s/10),s%10]
-            const color = (piece) => {  // Returns color of piece
-                if (piece==='_' || piece===undefined) {
-                    return false
-                } else if ( 'PLMNBRSQUK'.test(piece)) {
-                    return 'white'
-                } else if ( 'plmnbrsquk'.test(piece)) {
-                    return 'black'
-                } else {
-                    console.log('Piece error')
-                    return false
-                }
+        const color = (piece) => {  // Returns color of piece
+            if (piece==='_' || piece===undefined) {
+                return false
+            } else if ( 'PLMNBRSQUK'.test(piece)) {
+                return 'white'
+            } else if ( 'plmnbrsquk'.test(piece)) {
+                return 'black'
+            } else {
+                console.log('Piece error')
+                return false
             }
+        }
+        const Kk = (sqObj) => {      // Function to find the King and king
+            let [K, k]
+            Object.values(sqObj).forEach((idx) => {
+                if (sqObj[idx].piece==='K' || sqObj[idx].piece==='U') {
+                    K = idx
+                }
+                if (sqObj[idx].piece==='k' || sqObj[idx].piece==='u') {
+                    k = idx
+                }
+            })
+            return [K, k]
+        }
+
+        function getCandidates(squaresObj = squares) {  //Return a squares updating candidate moves and attacked squares
+            // const split = (s) => [Math.floor(s/10),s%10]
             const moveable = (y,x,c) => {//Returns if the indexed square is empty or of the given color(c)
-                return (squares[`${y}${x}`]==='_'||color(squares[`${y}${x}`])===c)
+                return (squaresObj[`${y}${x}`]==='_'||color(squares[`${y}${x}`])===c)
             }
             const diagonal = (y,x,c) => {//Returns results of diagonally moving piece that captures color(c)
                 const direction = (dy,dx) => {
@@ -171,145 +183,285 @@ function Game() {
                 }
                 return [...dir(1,0)...dir(-1,0)...dir(0,1)...dir(0,-1)]
             }
-            const move__ = (y,x) => {   // Empty Square
+            let attacks = {   // An object of function elements that return attacks for different pieces
+            "_": (y,x) => {   // Empty Square
                 return []
-            }
-            const move_P = (y,x) => {   // Regular White Pawn
+            },
+            "P": (y,x) => {   // Regular White Pawn
                 result = []
-                if (squares[`${y+1}${x}`].piece === '_') {
-                    result.push(`${y+1}${x}`)
-                }
-                if (y===2 && squares[`${y+2}${x}`].piece==='_') {
-                    result.push(`${y+2}${x}`)
-                }
-                if (color(squares[`${y+1}${x-1}`].piece)==='black') {
+                if (color(squaresObj[`${y+1}${x-1}`].piece)==='black') {
                     result.push(`${y+1}${x-1}`)
                 }
-                if (color(squares[`${y+1}${x+1}`].piece)==='black') {
+                if (color(squaresObj[`${y+1}${x+1}`].piece)==='black') {
                     result.push(`${y+1}${x+1}`)
                 }
-            }
-            const move_p = (y,x) => {   // Regular Black Pawn
+            },
+            "p": (y,x) => {   // Regular Black Pawn
                 result = []
-                if (squares[`${y-1}${x}`].piece === '_') {
-                    result.push(`${y-1}${x}`)
-                }
-                if (y===7 && squares[`${y-2}${x}`].piece==='_') {
-                    result.push(`${y-2}${x}`)
-                }
-                if (color(squares[`${y-1}${x-1}`].piece)==='white') {
+                if (color(squaresObj[`${y-1}${x-1}`].piece)==='white') {
                     result.push(`${y-1}${x-1}`)
                 }
-                if (color(squares[`${y-1}${x+1}`].piece)==='white') {
+                if (color(squaresObj[`${y-1}${x+1}`].piece)==='white') {
                     result.push(`${y-1}${x+1}`)
                 }
-            }
-            const move_L = (y,x) => {   // White En Pawn capturing Left
-                return move_P(y,x).push(`6${x-1}`)
-            }
-            const move_l = (y,x) => {   // Black En Pawn capturing Left
-                return move_p(y,x).push(`3${x+1}`)
-            }
-            const move_M = (y,x) => {   // White En Pawn capturing right
-                return move_P(y,x).push(`6${x+1}`)
-            }
-            const move_m = (y,x) => {   // Black En Pawn capturing right
-                return move_p(y,x).push(`3${x-1}`)
-            }
-            const move_N = (y,x) => {   // White kNight
-                let result = [
-                    `${y+2}{x-1}`,
-                    `${y+2}{x+1}`,
-                    `${y+1}{x-2}`,
-                    `${y-1}{x-2}`,
-                    `${y-2}{x+1}`,
-                    `${y-2}{x-1}`,
-                    `${y-1}{x-2}`,
-                    `${y+1}{x-2}`
+            },
+            "L": (y,x) => {   // White En Pawn capturing Left
+                return attacks['P'](y,x).push(`6${x-1}`)
+            },
+            'l': (y,x) => {   // Black En Pawn capturing Left
+                return attacks['p'](y,x).push(`3${x+1}`)
+            },
+            'M': (y,x) => {   // White En Pawn capturing right
+                return attacks['P'](y,x).push(`6${x+1}`)
+            },
+            'm': (y,x) => {   // Black En Pawn capturing right
+                return attacks['p'](y,x).push(`3${x-1}`)
+            },
+            "N": (y,x) => {   // White kNight
+                let options = [
+                    [y+2,x-1],
+                    [y+2,x+1],
+                    [y+1,x-2],
+                    [y-1,x-2],
+                    [y-2,x+1],
+                    [y-2,x-1],
+                    [y-1,x-2],
+                    [y+1,x-2]
                 ]
-                return result.filter((square) => {
-                    return (squares[square].piece==='_' || color(squares[square].piece)==='black')
-                })
-            }
-            const move_n = (y,x) => {   // Black kNight
-                let result = [
-                    `${y+2}{x-1}`,
-                    `${y+2}{x+1}`,
-                    `${y+1}{x-2}`,
-                    `${y-1}{x-2}`,
-                    `${y-2}{x+1}`,
-                    `${y-2}{x-1}`,
-                    `${y-1}{x-2}`,
-                    `${y+1}{x-2}`
+                return options.filter((yx) => moveable(yx[0],yx[1],'black')).map((yx) => `${yx[0]}${yx[1]}`)
+            },
+            'n': (y,x) => {   // Black kNight
+                let options = [
+                    [y+2,x-1],
+                    [y+2,x+1],
+                    [y+1,x-2],
+                    [y-1,x-2],
+                    [y-2,x+1],
+                    [y-2,x-1],
+                    [y-1,x-2],
+                    [y+1,x-2]
                 ]
-                return result.filter((square) => {
-                    return (squares[square].piece==='_' || color(squares[square].piece)==='white')
-                })
-            }
-            const move_B = (y,x) => {   // White Bishop
+                return options.filter((yx) => moveable(yx[0],yx[1],'black')).map((yx) => `${yx[0]}${yx[1]}`)
+            },
+            'B': (y,x) => {   // White Bishop
                 return diagonal(y,x,'black')
-            }
-            const move_b = (y,x) => {   // Black Bishop
+            },
+            'b': (y,x) => {   // Black Bishop
                 return diagonal(y,x,'white')
-            }
-            const move_S = (y,x) => {   // White Unmoved Rook
+            },
+            'S': (y,x) => {   // White Unmoved Rook
                 return straight(y,x,'black')
-            }
-            const move_s = (y,x) => {   // Black Unmoved Rook
+            },
+            's': (y,x) => {   // Black Unmoved Rook
                 return straight(y,x,'white')
-            }
-            const move_R = (y,x) => {   // White moved Rook
+            },
+            'R': (y,x) => {   // White moved Rook
                 return straight(y,x,'black')
-            }
-            const move_r = (y,x) => {   // Black moved ROok
+            },
+            'r': (y,x) => {   // Black moved Rook
                 return straight(y,x,'white')
-            }
-            const move_Q = (y,x) => {   // White Queen
+            },
+            'Q': (y,x) => {   // White Queen
                 return [...diagonal(y,x,'black')...straight(y,x,'black')]
-            }
-            const move_q = (y,x) => {   // Black Queen
+            },
+            'q': (y,x) => {   // Black Queen
                 return [...diagonal(y,x,'white')...straight(y,x,'white')]
-            }
-            const move_U = (y,x) => {   // White Unmoved King
-                let results = move_K(y,x)
-                if (squares['11'].piece==='S' && squares['12'].piece==='_' && squares['13'].piece==='_' && squares['14'].piece==='_' && squares['13'].attackedBlack===false && squares['14'].attackedBlack===false && squares['15'].attackedBlack===false) {
+            },
+            'U': (y,x) => {   // White Unmoved King
+                let results = attacks['K'](y,x)
+
+
+                if (squaresObj['11'].piece==='S' && squaresObj['12'].piece==='_' && squaresObj['13'].piece==='_' && squaresObj['14'].piece==='_' && squaresObj['13'].inCheck.white && squaresObj['14'].inCheck.white && squaresObj['15'].inCheck.white) {
                     results.push('13')
                 }
-                if (squares['18'].piece==='S' && squares['16'].piece==='_' && squares['17'].piece==='_' && squares['15'].attackedBlack===false && squares['16'].attackedBlack===false && squares['17'].attackedBlack===false) {
+                if (squaresObj['18'].piece==='S' && squaresObj['16'].piece==='_' && squaresObj['17'].piece==='_' && squaresObj['15'].inCheck.white===false && squaresObj['16'].inCheck.white && squaresObj['17'].inCheck.white) {
                     results.push('17')
                 }
                 return results
-            }
-            const move_u = (y,x) => {
-                let results = move_k(y,x)
-                if (squares['81'].piece==='s' && squares['82'].piece==='_' && squares['83'].piece==='_' && squares['84'].piece==='_' && squares['83'].attackedWhite===false && squares['84'].attackedWhite===false && squares['85'].attackedWhite===false) {
+            },
+            'u': (y,x) => {   // Black Unmoved King
+                let results = attacks['k'](y,x)
+                if (squaresObj['81'].piece==='s' && squaresObj['82'].piece==='_' && squaresObj['83'].piece==='_' && squaresObj['84'].piece==='_' && squaresObj['83'].inCheck.black && squaresObj['84'].inCheck.black && squaresObj['85'].inCheck.black) {
                     results.push('83')
                 }
-                if (squares['88'].piece==='s' && squares['86'].piece==='_' && squares['87'].piece==='_' && squares['85'].attackedWhite===false && squares['86'].attackedWhite===false && squares['87'].attackedWhite===false) {
+                if (squares['88'].piece==='s' && squaresObj['86'].piece==='_' && squaresObj['87'].piece==='_' && squaresObj['85'].inCheck.black && squaresObj['86'].inCheck.black && squaresObj['87'].inCheck.black) {
                     results.push('87')
                 }
                 return results
-            }
-            const move_K = (y,x) => {   // White moved King
+            },
+            'K': (y,x) => {   // White moved King
                 let options = [[y+1,x+1],[y-1,x],[y+1,x-1],[y,x-1],[y-1,x-1],[y-1,x],[y-1,x+1],[y,x+1]]
                 options = options.filter((yx) => {moveable(yx[0],yx[1], 'black')})
                 return options.map((yx) => `${yx[0]}${yx[1]}`)
-            }
-            const move_k = (y,x) => {
+            },
+            'k': (y,x) => {   // Black moved King
                 let options = [[y+1,x+1],[y-1,x],[y+1,x-1],[y,x-1],[y-1,x-1],[y-1,x],[y-1,x+1],[y,x+1]]
                 options = options.filter((yx) => {moveable(yx[0],yx[1], 'white')})
                 return options.map((yx) => `${yx[0]}${yx[1]}`)
             }
-
+            }
+            for (let square in squaresObj){     // Reset "inCheck" values to false
+                squaresObj[square].inCheck = {'white': false, 'black': false}
+            }
+            for (let square in squaresObj) {    //Update candidate moves and attacked squares
+                // Take the list of attacks and add them to the list of available moves for that piece
+                squaresObj[square].candidates = attacks[squaresObj[square].piece](Number(square[0]),Number(square[1]))
+                // Iterate through attacked squares and document
+                let c = (color(squaresObj[square].piece)==='white') ? 0 : 1
+                for (let candidate of squaresObj[square].candidates) {
+                    squaresObj[candidate][c] = true
+                }
+            }
+            // Append the non aggressive pawn moves to candidate moves
+            for (let i=1; i<9; i++) {
+                for (let j=1; j<9; j++) {
+                    let ij = `${i}${j}`
+                    if (squaresObj[ij]==='P') {     // Nonaggressive white pawn moves
+                        if (squaresObj[`${i+1}${j}`].piece==='_') {
+                            squaresObj[ij].candidates.push(`${i+1}${j}`)
+                            if (i===2 && squaresObj[`${i+2}${j}`].piece==='_') {
+                                squaresObj[ij].candidates.push(`${i+2}${j}`)
+                            }
+                        }
+                    }
+                    if (squaresObj[ij]==='p') {     // Nonaggressive black pawn moves
+                        if (squaresObj[`${i-1}${j}`].piece==='_') {
+                            squaresObj[ij].candidates.push(`${i-1}${j}`)
+                            if (i===7 && squaresObj[`${i-2}${j}`].piece==='_') {
+                                squaresObj[ij].candidates.push(`${i-2}${j}`)
+                            }
+                        }
+                    }
+                }
+            }
+            return squaresObj
         }   // End of getCandidates
 
+        function getLegals(squaresObj = squares) {      // Tests "candidates" for legal moves
+            
+            const writeLegalMoves = (legalTestSquare) => {   // For the given square test all it's candidate moves for legality
+                let p = squaresObj[legalTestSquare].piece  // What kind of piece is it
+                let c = color(p)==='white' ? 0 : 1      // What color is the piece (represent as an index)
+                let king = Kk(squaresObj)[c]            //Where is the king
+                if (king!==legalTestSquare) {
+                    //Write a filter for candidates of legalTestSquare to place in legalMoves
+                    squaresObj[legalTestSquare].legalMoves = squaresObj[legalTestSquare].candidates.filter((testCandidate) => {
+                        // Filter should return true if candidate move does not leave the king in check
+                        testSquares = JSON.parse(JSON.stringify(squaresObj))//Generate NEW squares object to make test moves on
+                        testSquares[legalTestSquare].piece = '_'
+                        testSquares[testCandidate].piece = p
+                        testSquares = getCandidates(testSquares)    // Compute attacked squares
+                        return (!testSquares[king].inCheck[c])
+                    })
+
+
+                }
+                    
+            }
+
+            for (let i=1; i<9; i++) {           // Write the legal moves for each square
+                for (let j=1; j<9; j++) {
+                    let ij = `${i}${j}`
+                    writeLegalMoves(ij)
+                }
+            }
+            return squaresObj
+            
+        }
+
+        function compressState(turn, squaresObj = squares) {
+            let result = ''
+            for (let i=0; i<9; i++) {
+                for (let j=0; j<9; j++) {
+                    let ij = `${i}${j}`
+                    result += squaresObj[ij].piece
+                }
+            }
+            return result + turn
+        }
+
+        function transformPieces(s1,s2,squareObj=squares) { //Function to take care of piece changes
+            let [y1,x1,y2,x2] = [Number(s1[0]),Number(s1[1]),Number(s2[0]),Number(s2[1])]
+            if (squareObj[s2].piece==='U') {
+                squareObj[s2].piece = 'K'
+            }
+            if (squareObj[s2].piece==='u') {
+                squareObj[s2].piece = 'k'
+            }
+            if (squareObj[s2].piece==='S') {
+                squareObj[s2].piece = 'R'
+            }
+            if (squareObj[s2].piece==='s') {
+                squareObj[s2].piece = 'r'
+            }
+            if ('LM'.test(squareObj[s2].piece)) {
+                squareObj[s2].piece = 'P'
+            }
+            if ('lm'.test(squareObj[s2].piece)) {
+                squareObj[s2].piece = 'p'
+            }
+            if (squareObj[s2].piece==='P' && y2-y1===2) {
+                if (squareObj[`4${x-1}`].piece===p) {
+                    squareObj[`4${x-1}`].piece = 
+                }
+
+            }
+        }
 
 
 
-        piecesObj = {
-            "squares": {},
-            "getMoves": () => {},
-            "load": () => {},
+
+        // Build piecesObj
+        let piecesObj = {
+            "turn": 'white',
+            "gameState": 'normal',
+            "history": [compressState('T')],
+            "squares": () => {squares},
+            "getMoves": (yx) => {squares[yx].legalMoves},
+            "load": (gameStateString) => {
+                let pieceArray = []
+                for (let i=0; i<gameStateString.length; i++) {
+                    pieceArray.push(gameStateString[i])
+                }
+                piecesObj.turn = ('T'===pieceArray.pop()) ? 'white' : 'black'
+                for (let i=0; i<9; i++) {
+                    for (let j=0; j<9; j++) {
+                        squares[`${i}${j}`].piece = pieceArray.shift()
+                        getCandidates()
+                        return getLegals()
+                    }
+                }
+            },
+            "setMove": (s1,s2) => {
+                let pieceCaptured = (squares[s2].piece!=='_')
+                squares[s2].piece = squares[s1].piece
+                squares[s1].piece = '_'
+                transformPieces(s1,s2,squares)
+                getCandidates()
+                getLegals()
+                let c = {'white': 0, 'black': 1}[color(squares[s2].piece)]
+                let king = Kk(squares)[c]
+                let inCheck = squares[king].inCheck[c]
+                let moveTotal = 0
+                Object.keys(squares).forEach((square) => {
+                    moveTotal += square.legalMoves.length
+                })
+                piecesObj.gameState = 'normal'
+                if inCheck {
+                    piecesObj.gameState = 'inCheck'
+                }
+                if (moveTotal===0) {
+                    if (inCheck) {
+                        gameState = 'checkmate'
+                    } else {
+                        gameState = 'stalemate'
+                    }
+                }
+                piecesObj.turn = (piecesObj.turn === 'white') ? 'black' : 'white'
+                
+            
+                
+            }
 
         }
     }
