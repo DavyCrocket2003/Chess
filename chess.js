@@ -6,6 +6,7 @@
 // Function for generating the ChessBoard object
 // ChessBoard object accepts moves as an ordered pair of indices myBoard.move(25, 45)
 function ChessBoard(gameObj) {
+    console.log(`ChessBoard function called`)
     
     // Load Piece images
     const images = {}
@@ -98,6 +99,7 @@ function ChessBoard(gameObj) {
 // Function for generating game object
 // Game object accepts clicks as a square index myGame.click(25)
 function Game() {
+    console.log(`Game function called`)
     
     let pieceInHand = false
     let originSquare = '52'
@@ -107,6 +109,7 @@ function Game() {
 
     // Function that gives you a pieces object that handles the pieces and board configuration
     function Pieces(gameObj) {
+        console.log(`Pieces function called`)
 
         let squares = {}
         for (let i=1; i<9; i++) {
@@ -134,7 +137,7 @@ function Game() {
             }
         }
         const Kk = (sqObj) => {      // Function to find the King and king
-            let [K, k]
+            let [K, k] = ['15','85']
             Object.values(sqObj).forEach((idx) => {
                 if (sqObj[idx].piece==='K' || sqObj[idx].piece==='U') {
                     K = idx
@@ -155,24 +158,7 @@ function Game() {
                 const direction = (dy,dx) => {
                     let res = []
                     let [Y,X] = [y+dy,x+dx]
-                    if moveable(Y,X,c) {
-                        res.push(`${Y}${X}`])
-                    }
-                    while (squares[`${Y}${X}`].piece==='_') {
-                        [Y,X] = [Y+dy,X+dx]
-                        if moveable(Y,X,c) {
-                            res.push(`${Y}${X}`)
-                        }
-                    }
-                    return res
-                }
-                return [...direction(1,1)...direction(-1,1)...direction(1,-1)...direction(-1,-1)]
-            }
-            const straight = (y,x,c) => {//Returns moves of straight moving piece that captures color c
-                const dir = (dy,dx) => {
-                    let res = []
-                    let [Y,X] = [y+dy,x+dx]
-                    if moveable(Y,X,c) {
+                    if (moveable(Y,X,c)) {
                         res.push(`${Y}${X}`)
                     }
                     while (squares[`${Y}${X}`].piece==='_') {
@@ -183,7 +169,24 @@ function Game() {
                     }
                     return res
                 }
-                return [...dir(1,0)...dir(-1,0)...dir(0,1)...dir(0,-1)]
+                return [...direction(1,1),...direction(-1,1),...direction(1,-1),...direction(-1,-1)]
+            }
+            const straight = (y,x,c) => {//Returns moves of straight moving piece that captures color c
+                const dir = (dy,dx) => {
+                    let res = []
+                    let [Y,X] = [y+dy,x+dx]
+                    if (moveable(Y,X,c)) {
+                        res.push(`${Y}${X}`)
+                    }
+                    while (squares[`${Y}${X}`].piece==='_') {
+                        [Y,X] = [Y+dy,X+dx]
+                        if (moveable(Y,X,c)) {
+                            res.push(`${Y}${X}`)
+                        }
+                    }
+                    return res
+                }
+                return [...dir(1,0),...dir(-1,0),...dir(0,1),...dir(0,-1)]
             }
             let attacks = {   // An object of function elements that return attacks for different pieces
             "_": (y,x) => {   // Empty Square
@@ -264,10 +267,10 @@ function Game() {
                 return straight(y,x,'white')
             },
             'Q': (y,x) => {   // White Queen
-                return [...diagonal(y,x,'black')...straight(y,x,'black')]
+                return [...diagonal(y,x,'black'),...straight(y,x,'black')]
             },
             'q': (y,x) => {   // Black Queen
-                return [...diagonal(y,x,'white')...straight(y,x,'white')]
+                return [...diagonal(y,x,'white'),...straight(y,x,'white')]
             },
             'U': (y,x) => {   // White Unmoved King
                 let results = attacks['K'](y,x)
@@ -372,6 +375,7 @@ function Game() {
         }
 
         function compressState(turn, squaresObj = squares) {
+            console.log(`compressState function called`)
             let result = ''
             for (let i=0; i<9; i++) {
                 for (let j=0; j<9; j++) {
@@ -383,6 +387,7 @@ function Game() {
         }
 
         function transformPieces(s1,s2,squareObj=squares) { //Function to take care of piece changes
+            console.log(`transformPieces function called`)
             let [y1,x1,y2,x2] = [Number(s1[0]),Number(s1[1]),Number(s2[0]),Number(s2[1])]
             let promoteSymbol = ''
             if (squareObj[s2].piece==='U') {    //Unmoved King to King
@@ -446,7 +451,7 @@ function Game() {
             "turn": 'white',
             "game": gameObj,                //Parent Game
             "gameState": 'normal',          //Currently implemented: normal, check, checkmate, stalemate
-            "history": [compressState('T')],//String history of each board position
+            "history": ['SNBQUBNSPPPPPPPP________________________________ppppppppsnbqkbnsT'],//String history of each board position
             "squares": () => {squares},     //Get the squares object that represents everything
             "getSquare": (yx) => { //For a given square, get the moves available to the piece located there
                 return {
@@ -486,7 +491,7 @@ function Game() {
                     moveTotal += square.legalMoves.length
                 })
                 piecesObj.gameState = 'normal'
-                if inCheck {
+                if (inCheck) {
                     piecesObj.gameState = 'inCheck'
                 }
                 if (moveTotal===0) {
@@ -504,12 +509,25 @@ function Game() {
             }
             
         }
+        
     }
+    let pieces = Pieces()
+
     // Build the game obj
     const gameObj = {
-        "start": () => board.start(),   //deprecated
+        "start": () => {
+            console.log(`start function called`)
+            board.start()},   //deprecated
         "click": (yx) => {
-            squareInfo = self.pieces.getSquare(yx)
+            console.log(`click function called`)
+            // console.log(squareInfo)
+            console.log(pieceInHand)
+            console.log(yx)
+            console.log(originSquare)
+            
+            console.log(gameObj.pieces)
+            console.log(gameObj.pieces)
+            squareInfo = gameObj.pieces.getSquare(yx)
             if (!pieceInHand) {
                 if (squareInfo.piece==='_' || squareInfo.color !== pieces.turn) {
                     pass // board.write(`Choose a ${pieces.turn} piece.`)
@@ -538,8 +556,7 @@ function Game() {
         "print": () => console.log(this),
         "printBoard": () => console.log(board),
         "squares": () => board.squares(),
-        "pieces": Pieces(),
-        "board": board,
+        "pieces": pieces
     }
     const board = ChessBoard(gameObj)
 
@@ -553,12 +570,11 @@ function Game() {
 
 
   // Object for controlling the game state
-  const myGame = Game()
-  myGame.start()
+const myGame = Game()
 
 
   
-  ```When move is made```
+//   ```When move is made```
 // Update Pieces
     //  
 
